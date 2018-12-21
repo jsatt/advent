@@ -2,31 +2,33 @@ import os
 
 ## sample 1
 INPUT_FILE = 'test_input1.txt'
-ANSWER = 27730
+ANSWER = 4988
+# ANSWER = 27730
 
 ## sample 2
 # INPUT_FILE = 'test_input2.txt'
-# ANSWER = 36334
 
 ## sample 3
 # INPUT_FILE = 'test_input3.txt'
-# ANSWER = 39514
+# ANSWER = 31284
 
 ## sample 4
 # INPUT_FILE = 'test_input4.txt'
-# ANSWER = 27755
+# ANSWER = 3478
 
 ## sample 5
 # INPUT_FILE = 'test_input5.txt'
-# ANSWER = 28944
+# ANSWER = 6474
 
 ## sample 6
 # INPUT_FILE = 'test_input6.txt'
-# ANSWER = 18740
+# ANSWER = 1140
 
-## Part 1
+## Part 2
 INPUT_FILE = 'input.txt'
-ANSWER = 263327
+ANSWER = 77872
+# 80040 too high
+# 35072 too low
 
 
 def test_day():
@@ -37,52 +39,52 @@ def run_day():
     path = os.path.join(
         os.path.abspath(os.path.dirname(__file__)), INPUT_FILE)
     with open(path, 'r') as f:
-        board, units = parse_map(f.read().splitlines())
+        lines = f.read().splitlines()
 
-    rounds = 0
-    board.render(units)
+    elf_power = 4
     while True:
-        # if rounds == 25:
-            # import pdb; pdb.set_trace()  # XXX BREAKPOINT
-
-        print('-' * 30)
-        print('Round', rounds + 1)
-        for unit in units:
-            if unit.is_alive:
-                if not any(unit.targets(units)):
-                    print('round: {}'.format(rounds))
-                    board.render(units)
-                    # for unit in units:
-                        # print('{}{} - {}hp'.format(unit.type, (unit.x, unit.y), unit.hit_points))
-                    return rounds * sum([u.hit_points for u in units if u.is_alive])
-                target = unit.get_attack_target(units)
-                if not target:
-                    unit.move(board, units)
-                    target = unit.get_attack_target(units)
-                if target:
-                    unit.attack(target)
-
-        board.render(units)
+        board, units = parse_map(lines, elf_power)
+        rounds = 0
         units = sort_units([u for u in units if u.is_alive])
-        # for unit in units:
-            # print('{}{} - {}hp'.format(unit.type, (unit.x, unit.y), unit.hit_points))
-        rounds += 1
-        # if rounds > 50:
-            # break
+        # board.render(units)
+        while True:
+            # print('-' * 30)
+            # print('Round', rounds + 1, 'power', elf_power)
+            try:
+                for unit in units:
+                    if unit.is_alive:
+                        units = sort_units([u for u in units if u.is_alive])
+                        if not any(unit.targets(units)):
+                            board.render(units)
+                            return rounds * sum([u.hit_points for u in units if u.is_alive])
+                        target = unit.get_attack_target(units)
+                        if not target:
+                            unit.move(board, units)
+                            target = unit.get_attack_target(units)
+                        if target:
+                            unit.attack(target)
+                    if any([not u.is_alive for u in units if u.type == 'E']):
+                        raise ElfDied
+            except ElfDied:
+                break
 
-    board.render(units)
-    return board, units
+            # board.render(units)
+            goblins = [u.hit_points for u in units if u.type == 'G']
+            elves = [u.hit_points for u in units if u.type == 'E']
+            rounds += 1
+        elf_power += 1
 
 
-
-def parse_map(lines):
+def parse_map(lines, elf_power):
     board = Board()
     units = []
     for yidx, line in enumerate(lines):
         for xidx, char in enumerate(line):
             if char != '#':
                 space = board.add_space(xidx, yidx)
-                if char in 'EG':
+                if char == 'E':
+                    units.append(Unit(xidx, yidx, char, elf_power))
+                elif char == 'G':
                     units.append(Unit(xidx, yidx, char))
         if xidx >= board.width:
             board.width = xidx + 1
@@ -194,13 +196,13 @@ class Board:
 
 
 class Unit:
-    attack_power = 3
     hit_points = 200
 
-    def __init__(self, x, y, unit_type):
+    def __init__(self, x, y, unit_type, power=3):
         self.x = x
         self.y = y
         self.type = unit_type
+        self.attack_power = power
         self.target_type = 'E' if unit_type == 'G' else 'G'
 
     def take_hit(self, attack):
@@ -233,7 +235,6 @@ class Unit:
             return sorted(targets, key=lambda u: (u.hit_points, u.y, u.x))[0]
 
     def attack(self, target):
-        # print('{}{} attacks {}{}'.format(self.type, (self.x, self.y), target.type, (target.x, target.y)))
         target.take_hit(self.attack_power)
 
     def move(self, board, units):
@@ -246,8 +247,6 @@ class Unit:
                 shortest_path = path
                 shortest_dist = distance
             paths.append(path)
-        # if self.x == 10 and self.y == 22 and shortest_path and shortest_path.y == 21:
-            # import pdb; pdb.set_trace()  # XXX BREAKPOINT
 
         if shortest_path:
             self.x = shortest_path.x
@@ -255,3 +254,7 @@ class Unit:
 
     def __repr__(self):
         return '<Unit: {}; {}>'.format(self.type, (self.x, self.y))
+
+
+class ElfDied(Exception):
+    pass
