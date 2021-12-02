@@ -13,7 +13,7 @@ async def read_file(test: bool = False) -> Generator[str, None, None]:
             yield l
 
 
-async def count_increases_window(window_size: int = 1, test: bool = False) -> int:
+async def xcount_increases_window(window_size: int = 1, test: bool = False) -> int:
     inc_count = 0
     prev_readings = []
     current_readings = []
@@ -28,6 +28,22 @@ async def count_increases_window(window_size: int = 1, test: bool = False) -> in
         ):
             inc_count += 1
         prev_readings.append(reading)
+    return inc_count
+
+
+async def count_increases_window(window_size: int = 1, test: bool = False) -> int:
+    inc_count = 0
+    readings = []
+    current_point = window_size
+    prev_point = window_size + 1
+
+    async for line in read_file(test=test):
+        readings.append(int(line))
+        if (
+            len(readings) >= prev_point and
+            sum(readings[-current_point:]) > sum(readings[-prev_point:-1])
+        ):
+            inc_count += 1
     return inc_count
 
 
