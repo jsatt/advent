@@ -1,5 +1,4 @@
 from typing import Generator, List, Tuple
-from collections import deque
 
 def read_file(test: bool = False) -> Generator[str, None, None]:
     if test:
